@@ -1,2 +1,2 @@
 # BankTransactions
-Tesk Java Spring task with Kafka
+Java Spring project with Kafka
