@@ -9,9 +9,9 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
+                  autoIncrement: true
                   constraints:
                     primaryKey: true
-                    autoIncrement: true
                     nullable: false
               - column:
                   name: customer_id
