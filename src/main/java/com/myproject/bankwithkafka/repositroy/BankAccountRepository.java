@@ -1,4 +1,4 @@
-package com.myproject.bankwithkafka;
+package com.myproject.bankwithkafka.repositroy;
 
 import com.myproject.bankwithkafka.model.entity.BankAccount;
 import org.springframework.data.jpa.repository.JpaRepository;

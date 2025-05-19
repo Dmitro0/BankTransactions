@@ -1,6 +1,6 @@
 package com.myproject.bankwithkafka.service;
 
-import com.myproject.bankwithkafka.BankAccountRepository;
+import com.myproject.bankwithkafka.repositroy.BankAccountRepository;
 import com.myproject.bankwithkafka.dto.AccountCreationRequestDto;
 import com.myproject.bankwithkafka.dto.AccountResponseDto;
 import com.myproject.bankwithkafka.mapper.MapperToBankAccount;
@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,5 +39,29 @@ public class BankAccountService {
         BankAccount bankAccount = mapperToBankAccount.mapToBankAccount(request, accountNumber);
         BankAccount savedAccount = bankAccountRepository.save(bankAccount);
         return mapperToBankAccountDto.mapToBankAccountDto(savedAccount);
+    }
+
+    @Transactional
+    public void debitAccount(Long accountId, BigDecimal amount){
+        BankAccount bankAccount = getAccountById(accountId);
+        bankAccount.setBalance(bankAccount.getBalance().add(amount));
+    }
+
+    @Transactional
+    public void creditAccount(Long accountId, BigDecimal amount){
+        BankAccount bankAccount = getAccountById(accountId);
+        if (!checkBalance(bankAccount.getBalance(), amount)){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Amount larger then balance!");
+        }
+        bankAccount.setBalance(bankAccount.getBalance().subtract(amount));
+    }
+
+    private boolean checkBalance(BigDecimal balance, BigDecimal amount){
+        return balance.compareTo(amount) > 0;
+    }
+
+    private BankAccount getAccountById(Long accountId){
+        return bankAccountRepository.findById(accountId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format("Account with id: %d doesn't exists", accountId)));
     }
 }
