@@ -2,6 +2,7 @@ package com.myproject.bankwithkafka.model.entity;
 
 import com.myproject.bankwithkafka.model.enums.TransactionStatus;
 import com.myproject.bankwithkafka.model.enums.converter.TransactionStatusConverter;
+import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -25,6 +26,7 @@ public class PaymentTransaction extends BaseEntity{
     private String currency;
 
     @Convert(converter = TransactionStatusConverter.class)
+    @Column(name = "status")
     private TransactionStatus transactionStatus;
 
     private String errorMessage;

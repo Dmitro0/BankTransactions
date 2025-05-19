@@ -9,9 +9,9 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
+                  autoIncrement: true
                   constraints:
                     primaryKey: true
-                    autoIncrement: true
                     nullable: false
               - column:
                   name: amount
@@ -31,6 +31,8 @@ databaseChangeLog:
               - column:
                   name: error_message
                   type: TEXT
+                  constraints:
+                    nullable: true
               - column:
                   name: source_bank_account_id
                   type: BIGINT
