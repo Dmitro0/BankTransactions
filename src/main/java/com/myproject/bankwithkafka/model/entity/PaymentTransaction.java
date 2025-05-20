@@ -39,6 +39,6 @@ public class PaymentTransaction extends BaseEntity{
     @JoinColumn(name = "destinationBankAccountId")
     private BankAccount destinationBankAccount;
 
-    @OneToMany
+    @OneToMany(mappedBy = "paymentTransaction")
     private List<Refund> refunds;
 }

@@ -3,7 +3,6 @@ package com.myproject.bankwithkafka.service;
 import com.myproject.bankwithkafka.dto.PaymentTransactionRequestDto;
 import com.myproject.bankwithkafka.dto.PaymentTransactionResponseDto;
 import com.myproject.bankwithkafka.mapper.MapperToPaymentResponse;
-import com.myproject.bankwithkafka.mapper.MapperToPaymentTransaction;
 import com.myproject.bankwithkafka.model.entity.BankAccount;
 import com.myproject.bankwithkafka.model.entity.PaymentTransaction;
 import com.myproject.bankwithkafka.model.enums.TransactionStatus;
@@ -15,28 +14,30 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Optional;
-
 @RequiredArgsConstructor
 @Service
 public class PaymentTransactionService {
+
+    private final TransactionService transactionService;
     private final BankAccountService bankAccountService;
     private final BankAccountRepository bankAccountRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
-    private final MapperToPaymentTransaction mapperToPaymentTransaction;
     private final MapperToPaymentResponse mapperToPaymentResponse;
 
     @Transactional
-    public PaymentTransactionResponseDto initiateTransaction(PaymentTransactionRequestDto request){
-        BankAccount sourceAccount = getAccountByNumber(request.sourceAccountNumber())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format("Account with number: %s doesn't exists", request.sourceAccountNumber())));
-        BankAccount destinationAccount = getAccountByNumber(request.destinationAccountNumber())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format("Account with number: %s doesn't exists", request.destinationAccountNumber())));
-        if (!checkCurrencyBetweenAccounts(sourceAccount, destinationAccount)){
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Currencies are not similar");
+    public PaymentTransactionResponseDto initiateTransaction(PaymentTransactionRequestDto request) {
+        PaymentTransaction paymentTransaction = transactionService.createProcessingTransaction(request);
+        try {
+            return processTransaction(paymentTransaction, request);
+        } catch (ResponseStatusException e){
+            transactionService.updateTransactionStatus(paymentTransaction.getId(), TransactionStatus.FAILED, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Transaction failed: " + e.getMessage(), e);
         }
-        PaymentTransaction paymentTransaction = mapperToPaymentTransaction.mapToPaymentTransaction(request, sourceAccount, destinationAccount);
-        paymentTransactionRepository.save(paymentTransaction);
+    }
+    @Transactional
+    private PaymentTransactionResponseDto processTransaction(PaymentTransaction paymentTransaction, PaymentTransactionRequestDto request) {
+        BankAccount sourceAccount = getAccountByNumber(request.sourceAccountNumber());
+        BankAccount destinationAccount = getAccountByNumber(request.destinationAccountNumber());
         bankAccountService.debitAccount(destinationAccount.getId(), request.amount());
         bankAccountService.creditAccount(sourceAccount.getId(), request.amount());
         paymentTransaction.setTransactionStatus(TransactionStatus.SUCCESS);
@@ -44,11 +45,8 @@ public class PaymentTransactionService {
         return mapperToPaymentResponse.mapToPaymentResponseDto(paymentTransaction);
     }
 
-    private Optional<BankAccount> getAccountByNumber(String number){
-        return bankAccountRepository.findBankAccountByNumber(number);
-    }
-
-    private boolean checkCurrencyBetweenAccounts(BankAccount sourceAccount, BankAccount destinationAccount){
-        return sourceAccount.getCurrency().equals(destinationAccount.getCurrency());
+    private BankAccount getAccountByNumber(String number) {
+        return bankAccountRepository.findBankAccountByNumber(number).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format("Account with number: %s doesn't exists", number)));
     }
 }
