@@ -1,8 +1,8 @@
 package com.myproject.bankwithkafka.config;
 
-import com.myproject.bankwithkafka.dto.PaymentTransactionRequestDto;
-import com.myproject.bankwithkafka.event.PaymentProcessedEvent;
-import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -16,16 +16,19 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.myproject.bankwithkafka.dto.PaymentTransactionRequestDto;
+import com.myproject.bankwithkafka.event.PaymentProcessedEvent;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
 public class KafkaConfig {
-    @Value("${spring.kafka.bootstrapServers[0]}")
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @Bean
@@ -34,8 +37,8 @@ public class KafkaConfig {
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "default-group-id");
-        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "payment-transaction-group");
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         return config;
     }
     @Bean
@@ -57,6 +60,7 @@ public class KafkaConfig {
     public ConcurrentKafkaListenerContainerFactory<String, PaymentTransactionRequestDto> kafkaListenerContainerFactory
             (final ConsumerFactory<String, PaymentTransactionRequestDto> consumerFactory) {
         final ConcurrentKafkaListenerContainerFactory<String, PaymentTransactionRequestDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setConsumerFactory(consumerFactory);
         return factory;
     }

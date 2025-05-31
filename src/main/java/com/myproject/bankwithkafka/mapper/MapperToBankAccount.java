@@ -1,6 +1,5 @@
 package com.myproject.bankwithkafka.mapper;
 
-
 import com.myproject.bankwithkafka.dto.AccountCreationRequestDto;
 import com.myproject.bankwithkafka.model.entity.BankAccount;
 import org.mapstruct.Mapper;
